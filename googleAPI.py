@@ -39,7 +39,11 @@ class CalendarAPI:
         pass
 
     def addEvent(self, event):
-        pass
+        if type(event) != Event:
+            raise TypeError("event must be of type Event.")
+        self.service.events().insert(calendarId=event.owner, body=event())
+        print ('Event created: {}'.format(event.get('htmlLink')))
+
 
 
 
@@ -67,10 +71,41 @@ class Event:
             self.__notifications = Notifications
 
     def __call__(self):
-        payload = {'summary' : self.__name}
+        payload = {
+            'summary' : self.__name,
+            'start' : {
+                'dateTime' : "{}-{}-{}T{}:{}:{}-04:00".format(self.__startDate.year, self.__startDate.month, self.__startDate.day, self.__startDate.hour, self.__startDate.minute, self.__startDate.second),
+                'timeZone' : 'America/Toronto'
+            },
+            'end' : {
+                'dateTime' : "{}-{}-{}T{}:{}:{}-04:00".format(self.__endDate.year, self.__endDate.month, self.__endDate.day, self.__endDate.hour, self.__endDate.minute, self.__endDate.second),
+                'timeZone' : 'America/Toronto'
+            }
+        }
         try:
-            payload['location'] = self.location
+            payload['location'] = self.__location
+        except:
+            pass
 
+        try:
+            payload['description'] = self.__description
+        except:
+            pass
+
+        try:
+            payload['reminders'] = {
+                'useDefault' : False,
+                'overrides': self.__notifications
+            }
+        except:
+            payload['reminders'] = {
+                'useDefault' : False,
+                'overrides': [
+                    {'method' : "email", 'minutes' : 24 * 60},
+                    {'method' : 'popup', 'minutes' : 10}
+                ]
+            }
+        return payload
 
     @property
     def name(self):
@@ -151,8 +186,28 @@ class Event:
 
     @notifications.setter
     def notifications(self, newNotifcations):
-        self.__location = newNotifcations
+        raise SettingNotificationException
 
+    def addNotification(self, method, minutes=NONE, hours=NONE, days=None):
+        if minutes is None and hours is None and days is None:
+            raise AttributeError("You must include a time")
+        if hasattr(self, "__notificaitons"):
+            self.__notifications = []
+
+        self.__notifications.append({'method' : method, 'minutes' : (((days * 24) + hours) * 60) + minutes})
+
+    def deleteNotification(self, index=None):
+        if index is None or not index in range(len(self.__notificaitons)):
+            print("Which notification would you like to remove? ")
+            for i in range(len(self.__notifications)):
+                print(i + " : " + self.__notifications[i])
+            self.deleteNotification(input())
+        else:
+            print(self.__notifications.pop(i) + " removed.")
+
+class SettingNotificationException(Exception):
+    def __str__(self):
+        return "You cannot dirrectly change notificaitons, \nuse addNotification() or deleteNotification() \n to edit notifications"
 
 class InvalidDateException(Exception):
     def __str__(self):
