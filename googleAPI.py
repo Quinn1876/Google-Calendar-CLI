@@ -62,7 +62,7 @@ class Event:
         self.__endDate = EndDate
         self.__owner = Owner
         if Repetition:
-            self.__repetition = Repetition
+            self.__repetition = Repetition # TODO : IMPLEMENT
         if Location:
             self.__location = Location
         if Description:
@@ -74,11 +74,11 @@ class Event:
         payload = {
             'summary' : self.__name,
             'start' : {
-                'dateTime' : "{}-{}-{}T{}:{}:{}-04:00".format(self.__startDate.year, self.__startDate.month, self.__startDate.day, self.__startDate.hour, self.__startDate.minute, self.__startDate.second),
+                'dateTime' : "{}-{}-{}T{}:{}:00-04:00".format(*self.dateFormat(self.startDate)),
                 'timeZone' : 'America/Toronto'
             },
             'end' : {
-                'dateTime' : "{}-{}-{}T{}:{}:{}-04:00".format(self.__endDate.year, self.__endDate.month, self.__endDate.day, self.__endDate.hour, self.__endDate.minute, self.__endDate.second),
+                'dateTime' : "{}-{}-{}T{}:{}:00-04:00".format(*self.dateFormat(self.endDate)),
                 'timeZone' : 'America/Toronto'
             }
         }
@@ -188,22 +188,58 @@ class Event:
     def notifications(self, newNotifcations):
         raise SettingNotificationException
 
-    def addNotification(self, method, minutes=NONE, hours=NONE, days=None):
+    def addNotification(self, method, minutes=0, hours=0, days=0):
+        """
+        method: either 'email'  or  'popup'
+        """
         if minutes is None and hours is None and days is None:
             raise AttributeError("You must include a time")
-        if hasattr(self, "__notificaitons"):
+        if not hasattr(self, "__notifications"):
             self.__notifications = []
 
         self.__notifications.append({'method' : method, 'minutes' : (((days * 24) + hours) * 60) + minutes})
 
     def deleteNotification(self, index=None):
-        if index is None or not index in range(len(self.__notificaitons)):
+        if index is None or not index in range(len(self.__notifications)):
             print("Which notification would you like to remove? ")
             for i in range(len(self.__notifications)):
                 print(i + " : " + self.__notifications[i])
             self.deleteNotification(input())
         else:
             print(self.__notifications.pop(i) + " removed.")
+
+    @staticmethod
+    def dateFormat(date):
+        if type(date) != datetime.datetime:
+            raise TypeError("date must be of type datetime")
+        year = str(date.year)
+        # month
+        if date.month // 10 == 0:
+            month = "0" + str(date.month)
+        else:
+            month = str(date.month)
+
+        #days
+        if date.day // 10 == 0:
+            day = "0" + str(date.day)
+        else:
+            day = str(date.day)
+
+        # hour
+        if date.hour // 10 == 0:
+            hour = "0" + str(date.hour)
+        else:
+            hour = str(date.hour)
+
+        #minute
+        if date.minute // 10 == 0:
+            minute = "0" + str(date.minute)
+        else:
+            minute = str(date.minute)
+
+        return [year, month, day, hour, minute]
+
+
 
 class SettingNotificationException(Exception):
     def __str__(self):
